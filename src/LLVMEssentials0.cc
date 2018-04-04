@@ -90,6 +90,11 @@ int main(int argc, char **argv)
 	auto BarEntry = llvm::BasicBlock::Create(Context, "entry", Bar);
 	Builder.SetInsertPoint(BarEntry);
 
+	auto first = Bar->arg_begin();
+	auto third = first + 2;
+	auto mulresult = Builder.CreateMul(first, third, "mulresult");
+	Builder.CreateRet(mulresult);
+
 	llvm::verifyFunction(*Bar);
 
 	print(path);
