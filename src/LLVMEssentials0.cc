@@ -93,7 +93,24 @@ int main(int argc, char **argv)
 	auto first = Bar->arg_begin();
 	auto third = first + 2;
 	auto mulresult = Builder.CreateMul(first, third, "mulresult");
-	Builder.CreateRet(mulresult);
+
+	auto Cmp100 = Builder.CreateICmpULT(mulresult, Builder.getInt32(123), "cmp100");
+	auto ThenBB = llvm::BasicBlock::Create(Context, "then", Bar);
+	auto ElseBB = llvm::BasicBlock::Create(Context, "else", Bar);
+	auto IfresultBB = llvm::BasicBlock::Create(Context, "ifresult", Bar);
+	Builder.CreateCondBr(Cmp100, ThenBB, ElseBB);
+	Builder.SetInsertPoint(ThenBB);
+	auto ThenValue = Builder.CreateSub(mulresult, Builder.getInt32(3), "thenvalue");
+	Builder.CreateBr(IfresultBB);
+	Builder.SetInsertPoint(ElseBB);
+	auto ElseValue = Builder.CreateAdd(mulresult, Builder.getInt32(7), "elsevalue");
+	Builder.CreateBr(IfresultBB);
+	Builder.SetInsertPoint(IfresultBB);
+	auto PHI = Builder.CreatePHI(llvm::Type::getInt32Ty(Context), 2, "result");
+	PHI->addIncoming(ThenValue, ThenBB);
+	PHI->addIncoming(ElseValue, ElseBB);
+
+	Builder.CreateRet(PHI);
 
 	llvm::verifyFunction(*Bar);
 
