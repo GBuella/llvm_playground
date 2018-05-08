@@ -1,6 +1,16 @@
 /* vim: set filetype=cpp : */
 /* vim: set noet tw=100 ts=8 sw=8 cinoptions=+4,(0,t0: */
 
+/*
+ * To execute:
+ *
+ * $ ./toy0 toy.ll
+ * $ llc toy.ll
+ * $ as toy.s -o toy.o
+ * $ c99 src/LLVMEssentials0_main.c toy.o
+ * $ ./a.out 1 2 3
+ */
+
 #include <cassert>
 #include <string>
 #include <iostream>
@@ -15,6 +25,8 @@
 // llvm streams, FS stuff
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/FileSystem.h"
+
+using llvm::Type;
 
 /*
  * LLVM Essentials refers to a function getGlobalContext, but
@@ -41,13 +53,14 @@ static void print(const char *path)
 }
 
 static llvm::Function *emitFunction(llvm::IRBuilder<> &Builder,
-				    std::vector<llvm::Type*> ArgTypes,
+				    Type* ReturnType,
+				    std::vector<Type*> ArgTypes,
 				    std::vector<std::string> ArgNames,
 				    std::string Name)
 {
 	assert(ArgTypes.size() >= ArgNames.size());
 
-	auto funcType = llvm::FunctionType::get(Builder.getInt32Ty(), ArgTypes, false);
+	auto funcType = llvm::FunctionType::get(ReturnType, ArgTypes, false);
 	auto Func = llvm::Function::Create(funcType, llvm::Function::ExternalLinkage, Name, ModuleOb);
 	llvm::Function::arg_iterator Arg = Func->arg_begin();
 	for (auto& ArgName : ArgNames) {
@@ -59,7 +72,7 @@ static llvm::Function *emitFunction(llvm::IRBuilder<> &Builder,
 
 static llvm::Function *emitFunction(llvm::IRBuilder<> &Builder, std::string Name)
 {
-	return emitFunction(Builder, {}, {}, Name);
+	return emitFunction(Builder, Builder.getInt32Ty(), {}, {}, Name);
 }
 
 int main(int argc, char **argv)
@@ -70,20 +83,22 @@ int main(int argc, char **argv)
 	if (argc > 1)
 		path = argv[1];
 
+	auto Int32Ty = Builder.getInt32Ty();
+	auto Int64Ty = Builder.getInt64Ty();
+	auto Int8PtrTy = Builder.getInt8PtrTy(0);
+
 	auto Foo = emitFunction(Builder, "foo");
 	auto Entry = llvm::BasicBlock::Create(Context, "entry", Foo);
 	Builder.SetInsertPoint(Entry);
 
-	(void) ModuleOb->getOrInsertGlobal("somevar", Builder.getInt32Ty());
+	(void) ModuleOb->getOrInsertGlobal("somevar", Int32Ty);
 	auto SomeVar = ModuleOb->getNamedGlobal("somevar");
 	SomeVar->setAlignment(4);
 	Builder.CreateRet(Builder.getInt32(0));
 
 	auto Bar = emitFunction(Builder,
-				{llvm::Type::getInt32Ty(Context),
-				 llvm::Type::getInt64Ty(Context),
-				 llvm::Type::getInt32Ty(Context),
-				 llvm::Type::getInt16Ty(Context)},
+				Int32Ty,
+				{Int32Ty, Int64Ty, Int32Ty, Int64Ty},
 				{"first", "second", "third"},
 				"bar");
 
@@ -106,7 +121,7 @@ int main(int argc, char **argv)
 	auto ElseValue = Builder.CreateAdd(mulresult, Builder.getInt32(7), "elsevalue");
 	Builder.CreateBr(IfresultBB);
 	Builder.SetInsertPoint(IfresultBB);
-	auto PHI = Builder.CreatePHI(llvm::Type::getInt32Ty(Context), 2, "result");
+	auto PHI = Builder.CreatePHI(Int32Ty, 2, "result");
 	PHI->addIncoming(ThenValue, ThenBB);
 	PHI->addIncoming(ElseValue, ElseBB);
 
