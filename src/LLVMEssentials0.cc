@@ -35,7 +35,7 @@ using llvm::Type;
  */
 static llvm::LLVMContext Context;
 
-static llvm::Module *ModuleOb = new llvm::Module("dummy module", Context);
+static llvm::Module *ModuleOb = new llvm::Module("dummy0 module", Context);
 
 /*
  * LLVM Essentials uses the ModuleOb->dump() method, but that just

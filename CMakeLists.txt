@@ -9,3 +9,6 @@ include_directories(${LLVM_INCLUDE_DIRS})
 
 add_executable(toy0 src/LLVMEssentials0.cc)
 target_link_libraries(toy0 PRIVATE LLVMCore)
+
+add_executable(toy1 src/LLVMEssentials1.cc)
+target_link_libraries(toy1 PRIVATE LLVMCore)
